@@ -1,6 +1,6 @@
 # VDAO - Solana Mint & Burn Program
 
-VDAO ek Solana blockchain par bana hua smart contract program hai jo **Anchor Framework** ke saath develop kiya gaya hai. Yeh program SPL tokens ko **mint** (create) aur **burn** (destroy) karne ki functionality provide karta hai. Iska sabse khaas feature yeh hai ke jab bhi tokens mint hote hain, automatically **10% tokens team ko allocate** ho jaate hain.
+VDAO is a smart contract program built on the Solana blockchain using the **Anchor Framework**. It provides SPL token **minting** (creation) and **burning** (destruction) functionality. Its key feature is that every time tokens are minted, **10% is automatically allocated to the team wallet**.
 
 ---
 
@@ -28,14 +28,14 @@ VDAO ek Solana blockchain par bana hua smart contract program hai jo **Anchor Fr
 
 ## Overview
 
-VDAO ek token management system hai jo Solana blockchain par run hota hai. Iska main kaam hai:
+VDAO is a token management system that runs on the Solana blockchain. Its core responsibilities are:
 
-1. **Token Minting** - Naye tokens create karna users ke liye
-2. **Team Allocation** - Har mint par 10% tokens automatically team ko dena
-3. **Admin Burn** - Authority (admin) kisi bhi user ke tokens burn kar sakta hai
-4. **User Burn** - Users apne tokens khud burn kar sakte hain
+1. **Token Minting** - Create new tokens for users
+2. **Team Allocation** - Automatically allocate 10% of minted tokens to the team
+3. **Admin Burn** - The authority (admin) can burn tokens from any user's account
+4. **User Burn** - Users can voluntarily burn their own tokens
 
-Program **PDA (Program Derived Address)** use karta hai as mint authority, matlab program khud tokens mint/burn kar sakta hai bina kisi private key ke.
+The program uses a **PDA (Program Derived Address)** as the mint authority, meaning the program itself can mint and burn tokens without requiring an external private key.
 
 ---
 
@@ -43,12 +43,12 @@ Program **PDA (Program Derived Address)** use karta hai as mint authority, matla
 
 | Feature | Description |
 |---------|-------------|
-| Token Minting | SPL tokens mint karta hai user ke account mein |
-| 10% Team Fee | Har mint par automatically 10% extra tokens team wallet mein jaate hain |
-| Admin Burn | Authority kisi bhi user ke tokens burn kar sakta hai (PDA signer se) |
-| User Self-Burn | User apne tokens khud burn kar sakta hai apni signature se |
-| PDA Authority | Program Derived Address use hota hai as mint/burn authority |
-| Config Account | Single config PDA mein saara program state store hota hai |
+| Token Minting | Mints SPL tokens directly into a user's token account |
+| 10% Team Fee | Automatically mints 10% extra tokens to the team wallet on every mint |
+| Admin Burn | Authority can burn tokens from any user's account using PDA signer |
+| User Self-Burn | Users can burn their own tokens using their own signature |
+| PDA Authority | Program Derived Address is used as the mint/burn authority |
+| Config Account | All program state is stored in a single config PDA |
 
 ---
 
@@ -76,7 +76,7 @@ vdao/
 │   └── vdao/
 │       ├── Cargo.toml              # Rust crate dependencies
 │       └── src/
-│           └── lib.rs              # Main program code (saara logic yahan hai)
+│           └── lib.rs              # Main program code (all logic lives here)
 │
 ├── tests/                          # Test files
 │   └── vdao.ts                     # TypeScript test suite
@@ -84,7 +84,7 @@ vdao/
 ├── migrations/                     # Deployment scripts
 │   └── deploy.ts                   # Deploy script (template)
 │
-├── app/                            # Frontend application (abhi empty hai)
+├── app/                            # Frontend application (currently empty)
 │
 ├── Anchor.toml                     # Anchor framework configuration
 ├── Cargo.toml                      # Rust workspace configuration
@@ -125,11 +125,11 @@ vdao/
 
 ### PDA (Program Derived Address) System
 
-Program ek PDA use karta hai jo `"config"` seed se derive hota hai:
+The program uses a PDA derived from the `"config"` seed:
 
 - **Seed:** `b"config"`
-- **Purpose:** Yeh PDA program ki mint authority hai
-- **Benefit:** Kisi private key ki zaroorat nahi - program khud sign kar sakta hai
+- **Purpose:** This PDA serves as the program's mint authority
+- **Benefit:** No external private key is needed - the program can sign transactions on its own
 
 ```
 PDA = findProgramAddress([b"config"], program_id)
@@ -141,24 +141,24 @@ PDA = findProgramAddress([b"config"], program_id)
 
 ### 1. `initialize`
 
-Program ko pehli baar setup karne ke liye use hota hai. Yeh sirf **ek baar** call hota hai.
+Used to set up the program for the first time. This is called only **once**.
 
-**Kya karta hai:**
-- Config PDA account create karta hai
-- Authority (admin) set karta hai
-- Token mint address store karta hai
-- Team token account address store karta hai
-- PDA bump save karta hai
+**What it does:**
+- Creates the Config PDA account
+- Sets the authority (admin)
+- Stores the token mint address
+- Stores the team token account address
+- Saves the PDA bump
 
 **Required Accounts:**
 
 | Account | Type | Description |
 |---------|------|-------------|
-| `config` | `Account<Config>` | PDA - program config store karta hai (init) |
-| `mint` | `Account<Mint>` | Token ka mint address |
-| `team_token_account` | `Account<TokenAccount>` | Team ka token account |
+| `config` | `Account<Config>` | PDA that stores the program configuration (initialized here) |
+| `mint` | `Account<Mint>` | The token mint address |
+| `team_token_account` | `Account<TokenAccount>` | The team's token account |
 | `program_authority` | `UncheckedAccount` | PDA authority |
-| `authority` | `Signer` | Admin jo program setup kar raha hai |
+| `authority` | `Signer` | The admin setting up the program |
 | `system_program` | `Program<System>` | Solana system program |
 | `token_program` | `Program<Token>` | SPL Token program |
 | `rent` | `Sysvar<Rent>` | Rent sysvar |
@@ -172,12 +172,12 @@ Program ko pehli baar setup karne ke liye use hota hai. Yeh sirf **ek baar** cal
 
 ### 2. `mint_to_user`
 
-User ko tokens mint karta hai aur saath mein **10% team ko** bhi mint karta hai.
+Mints tokens to a user and simultaneously mints **10% to the team**.
 
-**Kya karta hai:**
-- User ke account mein `amount` tokens mint karta hai
-- Team ke account mein `amount / 10` tokens mint karta hai
-- PDA signer use karta hai (program authority)
+**What it does:**
+- Mints `amount` tokens to the user's account
+- Mints `amount / 10` tokens to the team's account
+- Uses the PDA as the signer (program authority)
 
 **Example:**
 ```
@@ -191,71 +191,71 @@ User requests: 1000 tokens
 
 | Account | Type | Description |
 |---------|------|-------------|
-| `config` | `Account<Config>` | PDA config (has_one = mint check) |
+| `config` | `Account<Config>` | PDA config (validated with has_one = mint) |
 | `mint` | `Account<Mint>` | Token mint (mutable) |
 | `program_authority` | `UncheckedAccount` | PDA signer |
-| `recipient_token_account` | `Account<TokenAccount>` | User ka token account |
-| `team_token_account` | `Account<TokenAccount>` | Team ka token account |
-| `authority` | `Signer` | Admin signature |
+| `recipient_token_account` | `Account<TokenAccount>` | The user's token account to receive tokens |
+| `team_token_account` | `Account<TokenAccount>` | The team's token account for the 10% allocation |
+| `authority` | `Signer` | Admin signature required |
 | `token_program` | `Program<Token>` | SPL Token program |
 
 **Parameters:**
 | Param | Type | Description |
 |-------|------|-------------|
-| `amount` | `u64` | Kitne tokens user ko mint karne hain |
+| `amount` | `u64` | Number of tokens to mint to the user |
 
 ---
 
 ### 3. `burn_from_user`
 
-Admin kisi bhi user ke tokens burn kar sakta hai. Yeh **admin-controlled** burn hai.
+Allows the admin to burn tokens from any user's account. This is an **admin-controlled** burn.
 
-**Kya karta hai:**
-- User ke account se `amount` tokens burn karta hai
-- PDA signer authority use karta hai
-- Sirf authority (admin) call kar sakta hai
+**What it does:**
+- Burns `amount` tokens from the user's token account
+- Uses the PDA as the signer authority
+- Only the authority (admin) can call this instruction
 
 **Required Accounts:**
 
 | Account | Type | Description |
 |---------|------|-------------|
-| `config` | `Account<Config>` | PDA config (has_one = mint check) |
+| `config` | `Account<Config>` | PDA config (validated with has_one = mint) |
 | `mint` | `Account<Mint>` | Token mint (mutable) |
 | `program_authority` | `UncheckedAccount` | PDA signer |
-| `user_token_account` | `Account<TokenAccount>` | User ka token account (burn hoga) |
-| `authority` | `Signer` | Admin signature |
+| `user_token_account` | `Account<TokenAccount>` | The user's token account (tokens will be burned from here) |
+| `authority` | `Signer` | Admin signature required |
 | `token_program` | `Program<Token>` | SPL Token program |
 
 **Parameters:**
 | Param | Type | Description |
 |-------|------|-------------|
-| `amount` | `u64` | Kitne tokens burn karne hain |
+| `amount` | `u64` | Number of tokens to burn |
 
 ---
 
 ### 4. `user_burn`
 
-User apne tokens **khud** burn kar sakta hai. Iske liye admin ki zaroorat nahi.
+Allows users to **voluntarily burn their own tokens**. No admin involvement required.
 
-**Kya karta hai:**
-- User ke account se `amount` tokens burn karta hai
-- User ki apni signature lagti hai
-- Token account ka owner user hona chahiye (constraint check)
+**What it does:**
+- Burns `amount` tokens from the user's token account
+- The user provides their own signature
+- The token account owner must match the signing user (enforced by constraint)
 
 **Required Accounts:**
 
 | Account | Type | Description |
 |---------|------|-------------|
-| `config` | `Account<Config>` | PDA config (has_one = mint check) |
+| `config` | `Account<Config>` | PDA config (validated with has_one = mint) |
 | `mint` | `Account<Mint>` | Token mint (mutable) |
-| `user_token_account` | `Account<TokenAccount>` | User ka token account (owner = user) |
-| `user` | `Signer` | User ki signature |
+| `user_token_account` | `Account<TokenAccount>` | The user's token account (owner must equal user) |
+| `user` | `Signer` | The user's signature |
 | `token_program` | `Program<Token>` | SPL Token program |
 
 **Parameters:**
 | Param | Type | Description |
 |-------|------|-------------|
-| `amount` | `u64` | Kitne tokens burn karne hain |
+| `amount` | `u64` | Number of tokens to burn |
 
 ---
 
@@ -263,16 +263,16 @@ User apne tokens **khud** burn kar sakta hai. Iske liye admin ki zaroorat nahi.
 
 ### Config Account (PDA)
 
-Yeh program ka main state account hai. Ek hi baar create hota hai aur saari information store karta hai.
+This is the program's main state account. It is created once during initialization and stores all the program configuration.
 
 | Field | Type | Size (bytes) | Description |
 |-------|------|-------------|-------------|
-| `authority` | `Pubkey` | 32 | Admin/authority ka wallet address |
-| `mint` | `Pubkey` | 32 | Token mint ka address |
-| `team_token_account` | `Pubkey` | 32 | Team ke token account ka address |
+| `authority` | `Pubkey` | 32 | The admin/authority wallet address |
+| `mint` | `Pubkey` | 32 | The token mint address |
+| `team_token_account` | `Pubkey` | 32 | The team's token account address |
 | `bump` | `u8` | 1 | PDA bump seed |
-| **Discriminator** | - | 8 | Anchor ka account discriminator |
-| **Total** | - | **105** | Total space used |
+| **Discriminator** | - | 8 | Anchor's account discriminator (auto-added) |
+| **Total** | - | **105** | Total space allocated |
 
 **PDA Seeds:** `[b"config"]`
 
@@ -332,7 +332,7 @@ User calls user_burn(amount: 200)
 │
 └──► Step 2: Burn from User
      ├── CPI call to SPL Token Program
-     ├── User signs as authority (apni signature)
+     ├── User signs as authority (own signature)
      └── 200 tokens burned from User's account
 
 Result: User loses 200 tokens, Total Supply -= 200
@@ -346,24 +346,24 @@ Result: User loses 200 tokens, Total Supply -= 200
 
 | Check | Where | Description |
 |-------|-------|-------------|
-| `has_one = mint` | MintToUser, BurnFromUser, UserBurn | Config mein stored mint match hona chahiye |
-| `address = config.team_token_account` | MintToUser | Team account address verify |
-| `constraint = user_token_account.owner == *user.key` | UserBurn | User apne hi account se burn kare |
-| `seeds = [b"config"], bump` | Initialize, MintToUser, BurnFromUser | PDA verification |
-| `Signer` | All instructions | Authority/User signature required |
+| `has_one = mint` | MintToUser, BurnFromUser, UserBurn | Ensures the mint stored in config matches the provided mint |
+| `address = config.team_token_account` | MintToUser | Verifies the team account address matches config |
+| `constraint = user_token_account.owner == *user.key` | UserBurn | Ensures the user can only burn from their own account |
+| `seeds = [b"config"], bump` | Initialize, MintToUser, BurnFromUser | PDA derivation verification |
+| `Signer` | All instructions | Requires authority or user signature |
 
 ### Key Security Points
 
-- **PDA Authority:** Program khud mint/burn authority hai, koi external private key nahi
-- **Admin Control:** `mint_to_user` aur `burn_from_user` sirf authority call kar sakta hai
-- **User Protection:** `user_burn` mein user apni hi token account se burn karta hai (owner check)
-- **Config Immutability:** Config sirf `initialize` mein set hota hai, baad mein change nahi hota
+- **PDA Authority:** The program itself is the mint/burn authority - no external private key exists
+- **Admin Control:** `mint_to_user` and `burn_from_user` can only be called by the authority
+- **User Protection:** In `user_burn`, the user can only burn from their own token account (owner check enforced)
+- **Config Immutability:** The config is only set during `initialize` and cannot be changed afterwards
 
 ---
 
 ## Prerequisites
 
-In tools ka installed hona zaroori hai:
+The following tools must be installed:
 
 | Tool | Purpose | Install Link |
 |------|---------|-------------|
@@ -378,32 +378,32 @@ In tools ka installed hona zaroori hai:
 ## Installation
 
 ```bash
-# 1. Repository clone karein
+# 1. Clone the repository
 git clone <repository-url>
 cd vdao
 
-# 2. JavaScript dependencies install karein
+# 2. Install JavaScript dependencies
 yarn install
 
-# 3. Program build karein
+# 3. Build the program
 anchor build
 
-# 4. Program ID generate karein
+# 4. Get the generated program ID
 solana address -k target/deploy/vdao-keypair.json
 ```
 
-Build ke baad program ID ko **2 jagah update** karna hoga:
+After building, you need to update the program ID in **2 places**:
 
-1. **`programs/vdao/src/lib.rs`** - `declare_id!()` macro mein
-2. **`Anchor.toml`** - `[programs.localnet]` section mein
+1. **`programs/vdao/src/lib.rs`** - Inside the `declare_id!()` macro
+2. **`Anchor.toml`** - Under the `[programs.localnet]` section
 
 ```rust
-// lib.rs mein update karein
+// Update in lib.rs
 declare_id!("YOUR_ACTUAL_PROGRAM_ID_HERE");
 ```
 
 ```toml
-# Anchor.toml mein update karein
+# Update in Anchor.toml
 [programs.localnet]
 vdao = "YOUR_ACTUAL_PROGRAM_ID_HERE"
 ```
@@ -413,38 +413,38 @@ vdao = "YOUR_ACTUAL_PROGRAM_ID_HERE"
 ## Build
 
 ```bash
-# Program build karein
+# Build the program
 anchor build
 
-# Build verify karein
+# Verify the build output
 ls target/deploy/
 # Output: vdao-keypair.json  vdao.so
 ```
 
 ### Build Optimizations (Cargo.toml)
 
-Release build mein yeh optimizations enabled hain:
+The following optimizations are enabled for release builds:
 
 | Setting | Value | Purpose |
 |---------|-------|---------|
-| `overflow-checks` | `true` | Integer overflow detect karta hai |
-| `lto` | `"fat"` | Link-Time Optimization - smaller binary |
-| `codegen-units` | `1` | Maximum optimization (slow build) |
-| `opt-level` | `3` | Build override mein highest optimization |
+| `overflow-checks` | `true` | Detects integer overflow at runtime |
+| `lto` | `"fat"` | Link-Time Optimization for a smaller binary |
+| `codegen-units` | `1` | Maximum optimization (slower compilation) |
+| `opt-level` | `3` | Highest optimization level in build override |
 
 ---
 
 ## Testing
 
 ```bash
-# Option 1: Anchor test (automatically starts local validator)
+# Option 1: Anchor test (automatically starts a local validator)
 anchor test
 
 # Option 2: Manual testing
-# Terminal 1 - Local validator start karein
+# Terminal 1 - Start the local validator
 solana-test-validator
 
-# Terminal 2 - Tests run karein
+# Terminal 2 - Run tests without starting a new validator
 anchor test --skip-local-validator
 ```
 
@@ -459,35 +459,35 @@ anchor test --skip-local-validator
 
 ### Current Test Coverage
 
-Abhi sirf basic `initialize` instruction ka test hai (`tests/vdao.ts`). Aur tests add karne ki zaroorat hai:
+Currently, only a basic `initialize` instruction test exists (`tests/vdao.ts`). Additional tests should be added for:
 
-- `mint_to_user` - minting + team allocation verify
-- `burn_from_user` - admin burn verify
-- `user_burn` - user self-burn verify
-- Error cases - unauthorized access, invalid accounts, etc.
+- `mint_to_user` - Verify minting and team allocation
+- `burn_from_user` - Verify admin burn functionality
+- `user_burn` - Verify user self-burn functionality
+- Error cases - Unauthorized access, invalid accounts, etc.
 
 ---
 
 ## Deployment
 
 ```bash
-# Localnet par deploy (default)
+# Deploy to localnet (default)
 anchor deploy
 
-# Devnet par deploy
+# Deploy to devnet
 anchor deploy --provider.cluster devnet
 
-# Mainnet par deploy
+# Deploy to mainnet
 anchor deploy --provider.cluster mainnet
 ```
 
 ### Deployment Checklist
 
-- [ ] Program ID update kiya (`lib.rs` + `Anchor.toml`)
-- [ ] Solana wallet mein SOL hai (deployment fee ke liye)
-- [ ] Correct cluster selected hai (`Anchor.toml`)
-- [ ] Program build successful hai
-- [ ] Tests pass ho rahe hain
+- [ ] Program ID updated in both `lib.rs` and `Anchor.toml`
+- [ ] Solana wallet has enough SOL for deployment fees
+- [ ] Correct cluster is selected in `Anchor.toml`
+- [ ] Program build completes successfully
+- [ ] All tests are passing
 
 ---
 
@@ -519,7 +519,7 @@ anchor-lang = { version = "0.31.0", features = ["init-if-needed"] }
 anchor-spl = { version = "0.31.0" }
 ```
 
-- **`init-if-needed`** feature: Agar account pehle se exist nahi karta toh initialize kar deta hai
+- **`init-if-needed`** feature: Automatically initializes an account if it doesn't already exist
 
 ### tsconfig.json
 
@@ -530,7 +530,7 @@ anchor-spl = { version = "0.31.0" }
     "lib": ["es2015"],              // ES2015 library
     "module": "commonjs",           // CommonJS modules
     "target": "es6",                // ES6 target
-    "esModuleInterop": true         // ES module compatibility
+    "esModuleInterop": true         // ES module interop compatibility
   }
 }
 ```
@@ -543,7 +543,7 @@ anchor-spl = { version = "0.31.0" }
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `anchor-lang` | 0.31.0 | Anchor framework core |
+| `anchor-lang` | 0.31.0 | Anchor framework core library |
 | `anchor-spl` | 0.31.0 | SPL token operations (mint, burn, transfer) |
 
 ### JavaScript/TypeScript
